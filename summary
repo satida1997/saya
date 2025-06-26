@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>สรุปรายรับรายจ่าย - Franck&sa Family</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to right, #ffe4f0, #e0f7fa);
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+    }
+    h1, h2 {
+      color: #f78da7;
+      text-shadow: 1px 1px 2px #fff;
+    }
+    .cute-card {
+      border: 3px dashed #f9a8d4;
+      background-color: rgba(255, 255, 255, 0.85);
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="max-w-5xl mx-auto p-6">
+    <h1 class="text-5xl font-bold text-center mb-8" style="background: url('https://cdn.pixabay.com/photo/2013/07/12/15/37/castle-150270_960_720.png') no-repeat center top; background-size: contain; padding: 2rem 0; color: #f78da7;">📊 สรุปรายรับรายจ่าย</h1>
+
+    <nav class="flex justify-center space-x-4 mb-6">
+      <a href="index.html" class="btn-cute py-2 px-4 rounded text-sm bg-pink-300">➕ เพิ่มข้อมูล</a>
+      <a href="summary.html" class="btn-cute py-2 px-4 rounded text-sm bg-pink-200">📊 สรุปข้อมูล</a>
+    </nav>
+
+    <div class="cute-card p-6 rounded-xl shadow mb-6">
+      <h2 class="text-2xl font-bold mb-4">📒 ประวัติรายการ</h2>
+      <ul id="transaction-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
+    </div>
+
+    <div class="cute-card p-6 rounded-xl shadow">
+      <h2 class="text-2xl font-bold mb-4">🎀 กราฟแสดงผลรายรับรายจ่าย</h2>
+      <canvas id="expense-chart" height="100"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyRs3UH0y4RfDX-lC4FwAhs1CHjTOL8xs1gI9lCACzTVO61he_sDQ-Y1U5py66SD2J02w/exec';
+    const list = document.getElementById('transaction-list');
+    const chartCtx = document.getElementById('expense-chart').getContext('2d');
+
+    let transactions = [];
+
+    async function fetchTransactions() {
+      try {
+        const res = await fetch(SHEET_URL);
+        transactions = await res.json();
+        updateList();
+        updateChart();
+      } catch (err) {
+        console.error('ดึงข้อมูลล้มเหลว', err);
+        alert('ไม่สามารถโหลดข้อมูลได้');
+      }
+    }
+
+    function updateList() {
+      list.innerHTML = '';
+      transactions.forEach(({ description, amount }) => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between bg-pink-100 bg-opacity-60 p-2 rounded';
+        li.innerHTML = `
+          <span>${description}</span>
+          <span class="${amount >= 0 ? 'text-green-600' : 'text-red-600'}">${amount.toLocaleString()} บาท</span>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function updateChart() {
+      const income = transactions.filter(t => t.amount >= 0).reduce((a, b) => a + b.amount, 0);
+      const expense = Math.abs(transactions.filter(t => t.amount < 0).reduce((a, b) => a + b.amount, 0));
+
+      new Chart(chartCtx, {
+        type: 'pie',
+        data: {
+          labels: ['รายรับ', 'รายจ่าย'],
+          datasets: [{
+            label: 'รวมรายรับ/รายจ่าย',
+            data: [income, expense],
+            backgroundColor: ['#bef264', '#fb7185'],
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+            }
+          }
+        }
+      });
+    }
+
+    fetchTransactions();
+  </script>
+</body>
+</html>
