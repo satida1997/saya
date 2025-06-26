@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Franck&Sa Family - รายรับรายจ่าย</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(120deg, #fceaff, #e0f7fa);
+      font-family: 'Kanit', sans-serif;
+    }
+    h1, h2 {
+      color: #805ad5;
+      text-shadow: 1px 1px 2px #fff;
+    }
+    .pastel-card {
+      border-radius: 1.5rem;
+      background-color: #ffffffcc;
+      box-shadow: 0 4px 20px rgba(128, 90, 213, 0.15);
+      padding: 2rem;
+    }
+    .btn-income {
+      background-color: #60a5fa;
+      color: #fff;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    .btn-income:hover {
+      background-color: #3b82f6;
+    }
+    .btn-expense {
+      background-color: #f87171;
+      color: #fff;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    .btn-expense:hover {
+      background-color: #ef4444;
+    }
+    .input-pastel {
+      border: 1px solid #ddd;
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      outline: none;
+    }
+    nav a {
+      transition: transform 0.2s;
+    }
+    nav a:hover {
+      transform: scale(1.05);
+    }
+    .calendar-preview {
+      margin-top: 2rem;
+    }
+    .today {
+      background-color: #d8b4fe !important;
+      font-weight: bold;
+      border: 2px solid #a78bfa;
+    }
+    .has-data {
+      background-color: #fef08a;
+    }
+    .day-sat { background-color: #e9d5ff; }
+    .day-sun { background-color: #fecaca; }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen">
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-4xl text-center font-semibold mb-8">🌈 Franck&Sa Family</h1>
+
+    <nav class="flex justify-center gap-4 mb-6">
+      <a href="index.html" class="btn-income px-4 py-2 rounded-lg">➕ เพิ่มข้อมูล</a>
+      <a href="summary.html" class="btn-income px-4 py-2 rounded-lg">📊 สรุปข้อมูล</a>
+    </nav>
+
+    <form id="expense-form" class="pastel-card">
+      <div class="grid grid-cols-1 gap-4">
+        <input type="date" id="date" class="input-pastel" required />
+        <div id="dynamic-section"></div>
+        <div class="grid grid-cols-2 gap-4">
+          <button type="button" id="income-btn" class="btn-income py-2 rounded-lg">📥 รายรับ</button>
+          <button type="button" id="expense-btn" class="btn-expense py-2 rounded-lg">📤 รายจ่าย</button>
+        </div>
+      </div>
+    </form>
+
+    <div id="calendar-section" class="calendar-preview pastel-card mt-6">
+      <h2 class="text-xl font-semibold mb-4">🗓️ วันที่ในเดือนนี้</h2>
+      <ul id="calendar-days" class="grid grid-cols-7 gap-2 text-center text-sm"></ul>
+    </div>
+  </div>
+
+  <script>
+    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyRs3UH0y4RfDX-lC4FwAhs1CHjTOL8xs1gI9lCACzTVO61he_sDQ-Y1U5py66SD2J02w/exec';
+    const form = document.getElementById('expense-form');
+    const dateInput = document.getElementById('date');
+    const incomeBtn = document.getElementById('income-btn');
+    const expenseBtn = document.getElementById('expense-btn');
+    const calendarList = document.getElementById('calendar-days');
+    const dynamicSection = document.getElementById('dynamic-section');
+
+    function createCategorySelector(type) {
+      dynamicSection.innerHTML = '';
+
+      const categorySelect = document.createElement('select');
+      categorySelect.className = 'input-pastel';
+      categorySelect.id = 'description';
+
+      const categories = {
+        income: ['เงินเดือนสา', 'เงินเดือนฟรองค์', 'ถูกหวยรางวัลที่1', 'ค่าขายอาหาร', 'อื่นๆ'],
+        expense: ['อาหาร', 'ค่ารถ', 'ค่าบัตรเครดิต', 'อื่นๆ']
+      };
+
+      categories[type].forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        categorySelect.appendChild(option);
+      });
+
+      const noteInput = document.createElement('input');
+      noteInput.type = 'text';
+      noteInput.id = 'note';
+      noteInput.placeholder = type === 'income' ? 'รายรับนี้คืออะไร' : 'รายจ่ายนี้คืออะไร';
+      noteInput.className = 'input-pastel';
+      noteInput.style.display = 'none';
+
+      categorySelect.addEventListener('change', () => {
+        noteInput.style.display = categorySelect.value === 'อื่นๆ' ? 'block' : 'none';
+      });
+
+      const amountInput = document.createElement('input');
+      amountInput.type = 'number';
+      amountInput.id = 'amount';
+      amountInput.placeholder = '💰 จำนวนเงิน';
+      amountInput.className = 'input-pastel';
+      amountInput.required = true;
+
+      dynamicSection.appendChild(categorySelect);
+      dynamicSection.appendChild(noteInput);
+      dynamicSection.appendChild(amountInput);
+    }
+
+    function renderCalendar(dateStr, transactionDates = []) {
+      calendarList.innerHTML = '';
+      const selectedDate = dateStr ? new Date(dateStr) : new Date();
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth();
+
+      const weekdays = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'];
+      weekdays.forEach(day => {
+        const header = document.createElement('li');
+        header.textContent = day;
+        header.className = 'font-bold text-purple-700';
+        calendarList.appendChild(header);
+      });
+
+      const firstDayOfMonth = new Date(year, month, 1).getDay();
+      const offset = (firstDayOfMonth + 6) % 7;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const today = new Date();
+
+      for (let i = 0; i < offset; i++) {
+        const empty = document.createElement('li');
+        empty.innerHTML = '&nbsp;';
+        calendarList.appendChild(empty);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(year, month, day);
+        const li = document.createElement('li');
+        li.className = 'bg-white border rounded-lg p-1';
+        li.textContent = d.getDate();
+
+        const weekday = d.getDay();
+        if (weekday === 0) li.classList.add('day-sun');
+        if (weekday === 6) li.classList.add('day-sat');
+
+        if (
+          d.getDate() === today.getDate() &&
+          d.getMonth() === today.getMonth() &&
+          d.getFullYear() === today.getFullYear()
+        ) {
+          li.classList.add('today');
+        }
+
+        const dateStr = d.toISOString().split('T')[0];
+        if (transactionDates.includes(dateStr)) {
+          li.classList.add('has-data');
+        }
+
+        calendarList.appendChild(li);
+      }
+    }
+
+    async function fetchTransactionDates() {
+      try {
+        const res = await fetch(SHEET_URL);
+        const data = await res.json();
+        const dates = data.map(entry => entry.date);
+        renderCalendar(null, dates);
+      } catch (err) {
+        console.error('ไม่สามารถโหลดข้อมูลวันที่ได้', err);
+      }
+    }
+
+    async function addTransaction(desc, amt, date) {
+      try {
+        const res = await fetch(SHEET_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ description: desc, amount: amt, date: date })
+        });
+        const text = await res.text();
+        if (text === 'Success') {
+          alert('✅ เพิ่มข้อมูลสำเร็จ!');
+          fetchTransactionDates();
+        } else {
+          alert('❌ เพิ่มข้อมูลไม่สำเร็จ');
+        }
+      } catch (err) {
+        console.error('ส่งข้อมูลล้มเหลว', err);
+        alert('เกิดข้อผิดพลาดในการส่งข้อมูล');
+      }
+    }
+
+    incomeBtn.addEventListener('click', () => {
+      createCategorySelector('income');
+      setTimeout(() => {
+        const desc = document.getElementById('description').value;
+        const date = dateInput.value;
+        const note = document.getElementById('note').value;
+        const amt = parseFloat(document.getElementById('amount').value);
+        if (!desc || !date || isNaN(amt)) return;
+        addTransaction(desc + (desc === 'อื่นๆ' && note ? ' - ' + note : ''), amt, date);
+        form.reset();
+      }, 100);
+    });
+
+    expenseBtn.addEventListener('click', () => {
+      createCategorySelector('expense');
+      setTimeout(() => {
+        const desc = document.getElementById('description').value;
+        const date = dateInput.value;
+        const note = document.getElementById('note').value;
+        const amt = parseFloat(document.getElementById('amount').value);
+        if (!desc || !date || isNaN(amt)) return;
+        addTransaction(desc + (desc === 'อื่นๆ' && note ? ' - ' + note : ''), -Math.abs(amt), date);
+        form.reset();
+      }, 100);
+    });
+
+    fetchTransactionDates();
+  </script>
+</body>
+</html>
