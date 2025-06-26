@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>สรุปรายรับรายจ่าย - Franck&sa Family</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <style>
     body {
       background: linear-gradient(to right, #ffe4f0, #e0f7fa);
@@ -19,15 +19,24 @@
       border: 3px dashed #f9a8d4;
       background-color: rgba(255, 255, 255, 0.85);
     }
+    .btn-cute {
+      background: linear-gradient(to right, #f9a8d4, #a5f3fc);
+      border: 2px solid #fce7f3;
+      box-shadow: 0 0 10px #faccf1;
+    }
+    .btn-cute:hover {
+      background: linear-gradient(to right, #a5f3fc, #f9a8d4);
+    }
   </style>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
 </head>
 <body class="min-h-screen">
   <div class="max-w-5xl mx-auto p-6">
     <h1 class="text-5xl font-bold text-center mb-8" style="background: url('https://cdn.pixabay.com/photo/2013/07/12/15/37/castle-150270_960_720.png') no-repeat center top; background-size: contain; padding: 2rem 0; color: #f78da7;">📊 สรุปรายรับรายจ่าย</h1>
 
     <nav class="flex justify-center space-x-4 mb-6">
-      <a href="index.html" class="btn-cute py-2 px-4 rounded text-sm bg-pink-300">➕ เพิ่มข้อมูล</a>
-      <a href="summary.html" class="btn-cute py-2 px-4 rounded text-sm bg-pink-200">📊 สรุปข้อมูล</a>
+      <a href="index.html" class="btn-cute py-2 px-4 rounded text-sm">➕ เพิ่มข้อมูล</a>
+      <a href="summary.html" class="btn-cute py-2 px-4 rounded text-sm">📊 สรุปข้อมูล</a>
     </nav>
 
     <div class="cute-card p-6 rounded-xl shadow mb-6">
@@ -42,7 +51,7 @@
   </div>
 
   <script>
-    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyRs3UH0y4RfDX-lC4FwAhs1CHjTOL8xs1gI9lCACzTVO61he_sDQ-Y1U5py66SD2J02w/exec';
+    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyh38CrPnt4ZB_nZn81XDgZcg_XJRm-msdwjjZBYygaNbSSB3LRVGXI9T7fRGiEfmxN/exec';
     const list = document.getElementById('transaction-list');
     const chartCtx = document.getElementById('expense-chart').getContext('2d');
 
@@ -51,7 +60,13 @@
     async function fetchTransactions() {
       try {
         const res = await fetch(SHEET_URL);
-        transactions = await res.json();
+        const rawData = await res.json();
+
+        transactions = rawData.map(entry => ({
+          description: entry.description || '',
+          amount: parseFloat(entry.amount) || 0
+        }));
+
         updateList();
         updateChart();
       } catch (err) {
@@ -74,8 +89,8 @@
     }
 
     function updateChart() {
-      const income = transactions.filter(t => t.amount >= 0).reduce((a, b) => a + b.amount, 0);
-      const expense = Math.abs(transactions.filter(t => t.amount < 0).reduce((a, b) => a + b.amount, 0));
+      const income = transactions.filter(t => t.amount >= 0).reduce((sum, t) => sum + t.amount, 0);
+      const expense = Math.abs(transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
 
       new Chart(chartCtx, {
         type: 'pie',
@@ -84,14 +99,14 @@
           datasets: [{
             label: 'รวมรายรับ/รายจ่าย',
             data: [income, expense],
-            backgroundColor: ['#bef264', '#fb7185'],
+            backgroundColor: ['#fbcfe8', '#a5f3fc']
           }]
         },
         options: {
           responsive: true,
           plugins: {
             legend: {
-              position: 'bottom',
+              position: 'bottom'
             }
           }
         }
